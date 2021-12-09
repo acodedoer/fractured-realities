@@ -1,44 +1,45 @@
 AFRAME.registerComponent('multiverse', {
     schema: {
-        min: {type:'number', default:120}
-        
+        min: {type:'number', default:300}    
     },
     init: function(){
-        const plane1 = {x1:-2, x2:4, y1:0, y2:4, z1:0, z2:0};
-        const baseTris=[];
-        this.triangles=[];
-        if(!plane1.x1 && !plane1.x2){
-            console.log("x=0")
-            baseTris.push({p1: new THREE.Vector3(0,4, -2), p2:new THREE.Vector3(0,0, -2), p3:new THREE.Vector3(0,0,2)})
-            baseTris.push({p1:new THREE.Vector3(0,4, -2), p2:new THREE.Vector3(0,0,2), p3:new THREE.Vector3(0,4,2)})
-        }
-        else if(!plane1.z1 && !plane1.z2){
-            console.log("z=0")
-            baseTris.push({p1: new THREE.Vector3(-2,4, 0), p2:new THREE.Vector3(-2,0, 0), p3:new THREE.Vector3(2,0,0)})
-            baseTris.push({p1:new THREE.Vector3(-2,4, 0), p2:new THREE.Vector3(2,0,0), p3:new THREE.Vector3(2,4,0)})
-        }
-        baseTris.forEach(triangle => {
-           this.decompose(triangle);
-        });
+        this.counter=0;
+        const plane = {P1: new THREE.Vector3(-2,4,-2), P2: new THREE.Vector3(-2,0,-2), P3: new THREE.Vector3(2,0,-2),P4: new THREE.Vector3(2,4,-2)};
 
-        this.drawTriangles(this.triangles);
-        console.log(this.triangles)
+        let baseTris=[];
+
+        this.triangles=[];
+        const rotations=[[0,0,0],[0,180, 0], [0, 90, 0], [0, -90, 0]]
+        const positions=[[0,0,-2],[0,0, 2], [-2, 0, 0], [2, 0, 0]]
+        for(let i =0; i<4; i++){
+            baseTris.push({p1: plane.P1, p2:plane.P2, p3:plane.P3})
+            baseTris.push({p1:plane.P1, p2:plane.P3, p3:plane.P4})
+            baseTris.forEach(triangle => {
+               this.decompose(triangle);
+            });
+            this.drawTriangles(this.triangles, rotations[i], positions[i]);
+            this.triangles=[];
+            baseTris=[];
+        }
+
     },
-    drawTriangles:function(triangles){
+    drawTriangles:function(triangles, rotations=[0,0,0], positions=[0,0,0]){
         const scene = document.querySelector("a-scene");
+        const parent = document.createElement("a-entity");
         triangles.forEach(triangle => {
             const el = document.createElement("a-entity");
-            const triangleMesh = this.createPrism([triangle.p1, triangle.p2, triangle.p3],0.1);
-            triangleMesh.position.set(0,0,0);
-            const mid = new THREE.Vector3();
-            new THREE.Triangle(triangle.p1, triangle.p2, triangle.p3).getMidpoint(mid);
-            el.object3D.position.x = mid.x/128;
-            el.object3D.position.y = mid.y/32;
-            el.object3D.position.z = mid.z/32;
-            el.setObject3D('mesh', triangleMesh);
+            const triangleMesh = this.createPrism([triangle.p1, triangle.p2, triangle.p3],0.01);
+            el.object3D.position.x =triangle.p1.x
+            el.object3D.position.y =triangle.p1.y
+            el.object3D.position.z =triangle.p1.z+2
+            el.object3D.attach(triangleMesh);
+            el.setAttribute("prism","")
             triangleMesh.updateMatrix();
-            scene.appendChild(el);
+            parent.appendChild(el);
         });
+        parent.setAttribute("rotation",`${rotations[0]} ${rotations[1]} ${rotations[2]}`);
+        parent.setAttribute("position",`${positions[0]} ${positions[1]} ${positions[2]}`);
+        scene.appendChild(parent)
     },
 
     decompose: function(triangle){
@@ -52,28 +53,27 @@ AFRAME.registerComponent('multiverse', {
                 const line = new THREE.Line3(triangle.p1, triangle.p2);
                 const center = new THREE.Vector3();
                 line.getCenter(center);
-                this.decompose({p1: triangle.p1, p2:center, p3: triangle.p3})
-                this.decompose({p1: center, p2:triangle.p2, p3: triangle.p3})
+                this.decompose({p1: triangle.p1, p2:center, p3: triangle.p3},1)
+                this.decompose({p1: center, p2:triangle.p2, p3: triangle.p3},1)
             }
             else if(triangle.p2.distanceToSquared(triangle.p3) > triangle.p2.distanceToSquared(triangle.p1) && triangle.p2.distanceToSquared(triangle.p3) > triangle.p3.distanceToSquared(triangle.p1)){
                 const line = new THREE.Line3(triangle.p2, triangle.p3);
                 const center = new THREE.Vector3();
                 line.getCenter(center);
-                this.decompose({p1: triangle.p1, p2:triangle.p3, p3: center})
-                this.decompose({p1: center, p2:triangle.p3, p3: triangle.p1})
+                this.decompose({p1: triangle.p1, p2:triangle.p2, p3: center},2)
+                this.decompose({p1: center, p2:triangle.p3, p3: triangle.p1},2)
             }
             else{
                 const line = new THREE.Line3(triangle.p1, triangle.p3);
                 const center = new THREE.Vector3();
                 line.getCenter(center);
-                this.decompose({p1: triangle.p1, p2:triangle.p2, p3: center})
-                this.decompose({p1: triangle.p2, p2:triangle.p3, p3: center})
+                this.decompose({p1: triangle.p1, p2:triangle.p2, p3: center},3)
+                this.decompose({p1: triangle.p2, p2:triangle.p3, p3: center},3)
             }
         }
 
     },
     area:function(triangle){
-        console.log(triangle.p3)
         const tri = new THREE.Triangle(triangle.p1, triangle.p2, triangle.p3);
         return tri.getArea(); 
     },
@@ -99,12 +99,12 @@ AFRAME.registerComponent('multiverse', {
         const geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
         const loader = new THREE.TextureLoader();
         const material1 = new THREE.MeshBasicMaterial({color:0xff0000, side: THREE.DoubleSide});
-        const Texture = loader.load("cat.jpg", texture => {
-            material1.map = texture;
-            material1.needsUpdate = true;
-        });
-        Texture.wrapS = Texture.wrapT = THREE.RepeatWrapping;
-        Texture.repeat.set(0.2,0.2);     
+        // const Texture = loader.load("cat.jpg", texture => {
+        //     material1.map = texture;
+        //     material1.needsUpdate = true;
+        // });
+        // Texture.wrapS = Texture.wrapT = THREE.RepeatWrapping;
+        // Texture.repeat.set(0.2,0.2);     
 
         
         const material2 = new THREE.MeshBasicMaterial({color: 0x00ff00,side: THREE.DoubleSide});
@@ -114,5 +114,27 @@ AFRAME.registerComponent('multiverse', {
             material2];
 
         return new THREE.Mesh(geometry,materials);     
+    }
+})
+
+AFRAME.registerComponent('prism', {
+    init: function(){
+        const randz = Math.random() * 20;
+        const randx = Math.random() * 25;
+        this.alpha = Math.random() * 2*Math.PI;
+        this.beta = Math.random() * 2*Math.PI;
+        this.theta = Math.random() * 2*Math.PI;
+        this.rotationSpeed = Math.random();
+
+        this.el.object3D.position.z = -randz - 2;
+        this.el.object3D.position.x = randx -4;
+        this.el.object3D.rotation.x = this.alpha;
+        this.el.object3D.rotation.y = this.beta;
+        this.el.object3D.rotation.z = this.theta;
+    },
+    tick(d, dt){
+       // this.el.object3D.rotation.x += dt/1000 * this.rotationSpeed;
+        this.el.object3D.rotation.y += dt/1000 * this.rotationSpeed;;
+        //this.el.object3D.rotation.z += dt/1000 * this.rotationSpeed;;
     }
 })

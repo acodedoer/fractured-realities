@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    
+    <script src="https://unpkg.com/aframe-environment-component@1.2.0/dist/aframe-environment-component.min.js"></script>
+    <script src="index.js"></script>
+  </head>
+  <body>
+    <a-scene multiverse>
+       
+        <a-entity>
+            <a-plane position="0 2 -2" scale="4 4 4"></a-plane>
+            <a-plane position="0 2 2" rotation="0 180 0" scale="4 4 4"></a-plane>
+            <a-plane position="-2 2 0" rotation="0 90 0" scale="4 4 4"></a-plane>
+            <a-plane position="2 2 0" rotation="0 -90 0" scale="4 4 4"></a-plane>
+        </a-entity>     
+    </a-scene>
+  </body>
+</html>

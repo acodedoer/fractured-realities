@@ -1,27 +1,36 @@
 AFRAME.registerComponent('multiverse', {
     schema: {
-        min: {type:'number', default:300}    
+        min: {type:'number', default:123}    
     },
     init: function(){
         this.counter=0;
         const plane = {P1: new THREE.Vector3(-2,4,-2), P2: new THREE.Vector3(-2,0,-2), P3: new THREE.Vector3(2,0,-2),P4: new THREE.Vector3(2,4,-2)};
-
+        this.images=[];
         let baseTris=[];
-
         this.triangles=[];
         const rotations=[[0,0,0],[0,180, 0], [0, 90, 0], [0, -90, 0]]
         const positions=[[0,0,-2],[0,0, 2], [-2, 0, 0], [2, 0, 0]]
-        for(let i =0; i<4; i++){
-            baseTris.push({p1: plane.P1, p2:plane.P2, p3:plane.P3})
-            baseTris.push({p1:plane.P1, p2:plane.P3, p3:plane.P4})
-            baseTris.forEach(triangle => {
-               this.decompose(triangle);
-            });
-            this.drawTriangles(this.triangles, rotations[i], positions[i]);
-            this.triangles=[];
-            baseTris=[];
-        }
-
+        fetch('https://www.reddit.com/r/cats.json')
+            .then(res=>res.json())
+            .then(res=>res.data.children)
+            .then(res=>res.map(post=>({
+                url: post.data.url
+              })))
+            .then(res=> 
+                {
+                    this.images = Object.values(res); 
+                    console.log(this.images)
+                    for(let i =0; i<4; i++){
+                        baseTris.push({p1: plane.P1, p2:plane.P2, p3:plane.P3})
+                        baseTris.push({p1:plane.P1, p2:plane.P3, p3:plane.P4})
+                        baseTris.forEach(triangle => {
+                        this.decompose(triangle);
+                        });
+                        this.drawTriangles(this.triangles, rotations[i], positions[i]);
+                        this.triangles=[];
+                        baseTris=[];
+                    }
+                })
     },
     drawTriangles:function(triangles, rotations=[0,0,0], positions=[0,0,0]){
         const scene = document.querySelector("a-scene");
@@ -98,16 +107,17 @@ AFRAME.registerComponent('multiverse', {
 
         const geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
         const loader = new THREE.TextureLoader();
-        const material1 = new THREE.MeshBasicMaterial({color:0xff0000, side: THREE.DoubleSide});
-        // const Texture = loader.load("cat.jpg", texture => {
-        //     material1.map = texture;
-        //     material1.needsUpdate = true;
-        // });
-        // Texture.wrapS = Texture.wrapT = THREE.RepeatWrapping;
-        // Texture.repeat.set(0.2,0.2);     
+        loader.crossOrigin=''
+        const material1 = new THREE.MeshBasicMaterial({side: THREE.DoubleSide});
+        const Texture = loader.load(this.images[7].url, texture => {
+            material1.map = texture;
+            material1.needsUpdate = true;
+        });
+        Texture.wrapS = Texture.wrapT = THREE.RepeatWrapping;
+        Texture.repeat.set(0.015625 * (this.data.min+1),0.015625 * (this.data.min+1));     
 
         
-        const material2 = new THREE.MeshBasicMaterial({color: 0x00ff00,side: THREE.DoubleSide});
+        const material2 = new THREE.MeshBasicMaterial({map: Texture,side: THREE.DoubleSide});
 
         const materials = [
             material1,

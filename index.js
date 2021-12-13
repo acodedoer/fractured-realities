@@ -1,8 +1,17 @@
 AFRAME.registerComponent('multiverse', {
     schema: {
-        min: {type:'number', default:123}    
+        min: {type:'number', default:500}    
     },
     init: function(){
+        this.canvases=[];
+        const config = {
+            src: './assets/open-peeps-sheet.png',
+            rows: 7,
+            cols: 15,
+            width: 3600,
+            height: 2268
+        }
+
         this.counter=0;
         const plane = {P1: new THREE.Vector3(-2,4,-2), P2: new THREE.Vector3(-2,0,-2), P3: new THREE.Vector3(2,0,-2),P4: new THREE.Vector3(2,4,-2)};
         this.images=[];
@@ -10,37 +19,72 @@ AFRAME.registerComponent('multiverse', {
         this.triangles=[];
         const rotations=[[0,0,0],[0,180, 0], [0, 90, 0], [0, -90, 0]]
         const positions=[[0,0,-2],[0,0, 2], [-2, 0, 0], [2, 0, 0]]
-        fetch('https://www.reddit.com/r/cats.json')
-            .then(res=>res.json())
-            .then(res=>res.data.children)
-            .then(res=>res.map(post=>({
-                url: post.data.url
-              })))
-            .then(res=> 
-                {
-                    this.images = Object.values(res); 
-                    console.log(this.images)
-                    for(let i =0; i<4; i++){
-                        baseTris.push({p1: plane.P1, p2:plane.P2, p3:plane.P3})
-                        baseTris.push({p1:plane.P1, p2:plane.P3, p3:plane.P4})
-                        baseTris.forEach(triangle => {
-                        this.decompose(triangle);
-                        });
-                        this.drawTriangles(this.triangles, rotations[i], positions[i]);
-                        this.triangles=[];
-                        baseTris=[];
-                    }
-                })
+
+        const source = document.createElement('img');
+        source.src=config.src;
+        source.crossOrigin="Anonymous"
+        source.onload = ()=> {
+            const x = config.width/config.cols;
+            const y = config.height/config.rows;
+            let currentImageX=0
+            let currentImageY=0
+            let counter =0;
+            for(let i = 0; i<config.rows; i++){
+                for(let j =0; j<config.cols;j++){
+                    this.canvases[counter]= document.createElement('canvas');
+                    this.canvases[counter].width=x;
+                    this.canvases[counter].height=y;
+                    const context = this.canvases[counter].getContext('2d')
+                    context.drawImage(source, currentImageX, currentImageY);
+                    currentImageX-=x;
+                    counter+=1;
+                }
+                currentImageX=0;
+                currentImageY-=y;
+                console.log(counter)
+            }
+            
+
+            for(let i =0; i<4; i++){
+                baseTris.push({p1: plane.P1, p2:plane.P2, p3:plane.P3})
+                baseTris.push({p1:plane.P1, p2:plane.P3, p3:plane.P4})
+                baseTris.forEach(triangle => {
+                this.decompose(triangle);
+                });
+                this.drawTriangles(this.triangles, rotations[i], positions[i]);
+                this.triangles=[];
+                baseTris=[];
+            }
+        };
+
+        // const texture = new THREE.Texture(canvas);
+        // texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        // texture.repeat.set(1,1);  
+        // texture.needsUpdate = true;
+
+        // var material = new THREE.MeshBasicMaterial({
+        //     map : texture
+        // });
+        
+       
+    
+        
+        // context.fillStyle = "white";
+        // context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        
+
     },
+
     drawTriangles:function(triangles, rotations=[0,0,0], positions=[0,0,0]){
         const scene = document.querySelector("a-scene");
         const parent = document.createElement("a-entity");
         triangles.forEach(triangle => {
             const el = document.createElement("a-entity");
-            const triangleMesh = this.createPrism([triangle.p1, triangle.p2, triangle.p3],0.01);
-            el.object3D.position.x =triangle.p1.x
-            el.object3D.position.y =triangle.p1.y
-            el.object3D.position.z =triangle.p1.z+2
+            const triangleMesh = this.createPrism([triangle[0].p1, triangle[0].p2, triangle[0].p3],triangle[1],0.01);
+            el.object3D.position.x =triangle[0].p1.x
+            el.object3D.position.y =triangle[0].p1.y
+            el.object3D.position.z =triangle[0].p1.z+2
             el.object3D.attach(triangleMesh);
             el.setAttribute("prism","")
             triangleMesh.updateMatrix();
@@ -51,10 +95,10 @@ AFRAME.registerComponent('multiverse', {
         scene.appendChild(parent)
     },
 
-    decompose: function(triangle){
+    decompose: function(triangle, type){
         
         if (this.area(triangle)<16/this.data.min){
-            this.triangles.push(triangle);
+            this.triangles.push([triangle,type]);
             return
         }
         else{
@@ -86,7 +130,7 @@ AFRAME.registerComponent('multiverse', {
         const tri = new THREE.Triangle(triangle.p1, triangle.p2, triangle.p3);
         return tri.getArea(); 
     },
-    createPrism: function(vertices, depth){
+    createPrism: function(vertices,type, depth){
         const shape = new THREE.Shape();
         shape.moveTo(vertices[0].x, vertices[0].y);
         for (let i=1; i < vertices.length; i++) {
@@ -105,25 +149,80 @@ AFRAME.registerComponent('multiverse', {
             material:0
         };
 
-        const geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
-        const loader = new THREE.TextureLoader();
-        loader.crossOrigin=''
-        const material1 = new THREE.MeshBasicMaterial({side: THREE.DoubleSide});
-        const Texture = loader.load(this.images[7].url, texture => {
-            material1.map = texture;
-            material1.needsUpdate = true;
-        });
-        Texture.wrapS = Texture.wrapT = THREE.RepeatWrapping;
-        Texture.repeat.set(0.015625 * (this.data.min+1),0.015625 * (this.data.min+1));     
+        let a, b, c,s;
+        a = vertices[0].distanceTo(vertices[1]);
+        b = vertices[1].distanceTo(vertices[2]);
+        c = vertices[2].distanceTo(vertices[0]);
+        s=(a+b+c)/2;
+        let ar = (a*b*c)/(8*(s-a)*(s-b)*(s-c));
 
+        var texture = new THREE.Texture(this.canvases[Math.floor(Math.random() * 103)]);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(ar*2, ar*2);  
+       
         
-        const material2 = new THREE.MeshBasicMaterial({map: Texture,side: THREE.DoubleSide});
+
+
+
+        // var texture = new THREE.Texture(this.canvases[Math.floor(Math.random() * 103)]);
+        // texture.wrapS = THREE.RepeatWrapping;
+        // texture.wrapT = THREE.RepeatWrapping;
+        // texture.repeat.set(0.7, 0.7);  
+        // texture.repeat.x = 0.7;
+        // texture.repeat.y =0.7;
+        // texture.offset.x = ((ar/this.area)-1)/2 *-1
+        // texture.needsUpdate = true;
+
+        var material;
+       
+        const geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
+        const material1 = new THREE.MeshBasicMaterial({map: texture, side: THREE.DoubleSide});
+
+        if(type==1){
+            material= new THREE.MeshBasicMaterial({
+                map : texture,
+                color:"red"
+            });
+        }
+        if(type==2){
+            material= new THREE.MeshBasicMaterial({
+                map : texture,
+                color:"blue"
+            });
+        }
+        if(type==3){
+            material= new THREE.MeshBasicMaterial({
+                map : texture,
+                color:"yellow"
+            });
+        }
+        if(vertices[0].y==vertices[1].y || vertices[1].y == vertices[2].y){
+            material= new THREE.MeshBasicMaterial({
+                map : texture,
+                color:"green"
+            });
+            //texture.offset.x = ar-1
+        }
+
+        else if(vertices[0].x==vertices[1].x || vertices[1].x == vertices[2].x){
+            material= new THREE.MeshBasicMaterial({
+                map : texture,
+                color:"gray"
+            });
+            //texture.offset.y = ar+1
+        }
+        texture.needsUpdate = true;
+        const material2 = new THREE.MeshBasicMaterial({map: texture,side: THREE.DoubleSide});
 
         const materials = [
-            material1,
-            material2];
+            material,
+            material
+        ];
 
-        return new THREE.Mesh(geometry,materials);     
+        const x = new THREE.Mesh(geometry,materials);  
+
+        return x   
     }
 })
 
@@ -135,16 +234,15 @@ AFRAME.registerComponent('prism', {
         this.beta = Math.random() * 2*Math.PI;
         this.theta = Math.random() * 2*Math.PI;
         this.rotationSpeed = Math.random();
-
-        this.el.object3D.position.z = -randz - 2;
+         this.el.object3D.position.z = randz - 4;
         this.el.object3D.position.x = randx -4;
         this.el.object3D.rotation.x = this.alpha;
         this.el.object3D.rotation.y = this.beta;
         this.el.object3D.rotation.z = this.theta;
     },
     tick(d, dt){
-       // this.el.object3D.rotation.x += dt/1000 * this.rotationSpeed;
-        this.el.object3D.rotation.y += dt/1000 * this.rotationSpeed;;
-        //this.el.object3D.rotation.z += dt/1000 * this.rotationSpeed;;
+       this.el.object3D.rotation.x += dt/1000 * this.rotationSpeed;
+        this.el.object3D.rotation.y += dt/1000 * this.rotationSpeed;
+        this.el.object3D.rotation.z += dt/1000 * this.rotationSpeed;
     }
 })

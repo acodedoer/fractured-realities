@@ -1,15 +1,15 @@
 AFRAME.registerComponent('multiverse', {
     schema: {
-        min: {type:'number', default:500}    
+        min: {type:'number', default:120}    
     },
     init: function(){
         this.canvases=[];
         const config = {
-            src: './assets/open-peeps-sheet.png',
+            src: './assets/open-peeps-sheet1.png',
             rows: 7,
             cols: 15,
-            width: 3600,
-            height: 2268
+            width: 1800,
+            height: 840
         }
 
         this.counter=0;
@@ -159,7 +159,7 @@ AFRAME.registerComponent('multiverse', {
         var texture = new THREE.Texture(this.canvases[Math.floor(Math.random() * 103)]);
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(ar*2, ar*2);  
+        texture.repeat.set(ar,ar);  
        
         
 
@@ -228,21 +228,21 @@ AFRAME.registerComponent('multiverse', {
 
 AFRAME.registerComponent('prism', {
     init: function(){
-        const randz = Math.random() * 20;
-        const randx = Math.random() * 25;
-        this.alpha = Math.random() * 2*Math.PI;
-        this.beta = Math.random() * 2*Math.PI;
-        this.theta = Math.random() * 2*Math.PI;
-        this.rotationSpeed = Math.random();
-         this.el.object3D.position.z = randz - 4;
-        this.el.object3D.position.x = randx -4;
-        this.el.object3D.rotation.x = this.alpha;
-        this.el.object3D.rotation.y = this.beta;
-        this.el.object3D.rotation.z = this.theta;
+        const randz = Math.random() *4;
+        // const randx = Math.random() * 25;
+        // this.alpha = Math.random() * 2*Math.PI;
+        // this.beta = Math.random() * 2*Math.PI;
+        // this.theta = Math.random() * 2*Math.PI;
+        // this.rotationSpeed = Math.random();
+         this.el.object3D.position.z = randz- 0.5 ;
+        // this.el.object3D.position.x = randx -4;
+        // this.el.object3D.rotation.x = this.alpha;
+        // this.el.object3D.rotation.y = this.beta;
+        // this.el.object3D.rotation.z = this.theta;
     },
     tick(d, dt){
-       this.el.object3D.rotation.x += dt/1000 * this.rotationSpeed;
-        this.el.object3D.rotation.y += dt/1000 * this.rotationSpeed;
-        this.el.object3D.rotation.z += dt/1000 * this.rotationSpeed;
+    //    this.el.object3D.rotation.x += dt/1000 * this.rotationSpeed;
+    //     this.el.object3D.rotation.y += dt/1000 * this.rotationSpeed;
+    //     this.el.object3D.rotation.z += dt/1000 * this.rotationSpeed;
     }
 })

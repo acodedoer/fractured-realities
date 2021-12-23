@@ -1,8 +1,9 @@
 AFRAME.registerComponent('multiverse', {
     schema: {
-        min: {type:'number', default:120}    
+        min: {type:'number', default:511}    
     },
     init: function(){
+        this.repeatRatio = 4;
         this.canvases=[];
         const config = {
             src: './assets/open-peeps-sheet1.png',
@@ -56,24 +57,6 @@ AFRAME.registerComponent('multiverse', {
                 baseTris=[];
             }
         };
-
-        // const texture = new THREE.Texture(canvas);
-        // texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        // texture.repeat.set(1,1);  
-        // texture.needsUpdate = true;
-
-        // var material = new THREE.MeshBasicMaterial({
-        //     map : texture
-        // });
-        
-       
-    
-        
-        // context.fillStyle = "white";
-        // context.fillRect(0, 0, canvas.width, canvas.height);
-        
-        
-
     },
 
     drawTriangles:function(triangles, rotations=[0,0,0], positions=[0,0,0]){
@@ -95,10 +78,51 @@ AFRAME.registerComponent('multiverse', {
         scene.appendChild(parent)
     },
 
-    decompose: function(triangle, type){
-        
+    decompose: function(triangle, type=0){
+        type=0;
+        let xflip = 1;
+        let yflip =1;
         if (this.area(triangle)<16/this.data.min){
-            this.triangles.push([triangle,type]);
+            console.log("Out");
+            if(triangle.p1.distanceToSquared(triangle.p2) > triangle.p2.distanceToSquared(triangle.p3) && triangle.p1.distanceToSquared(triangle.p2) > triangle.p3.distanceToSquared(triangle.p1)){
+                console.log("Top");
+                const line = new THREE.Line3(triangle.p1, triangle.p2);
+                const center = new THREE.Vector3();
+                line.getCenter(center);
+                if(center.y>triangle.p3.y) {
+                    yflip = -1;
+                }
+                if(center.x>triangle.p3.x){
+                    xflip= -1;
+                }
+            }
+            else if(triangle.p2.distanceToSquared(triangle.p3) > triangle.p2.distanceToSquared(triangle.p1) && triangle.p2.distanceToSquared(triangle.p3) > triangle.p3.distanceToSquared(triangle.p1)){
+                console.log("Mid");
+                const line = new THREE.Line3(triangle.p2, triangle.p3);
+                const center = new THREE.Vector3();
+                line.getCenter(center);
+                if(center.y>triangle.p1.y) {
+                    yflip = -1;
+                }
+                if(center.x>triangle.p1.x){
+                    xflip= -1;
+                }
+            }
+            else{
+                console.log("Bottom");
+                const line = new THREE.Line3(triangle.p1, triangle.p3);
+                const center = new THREE.Vector3();
+                line.getCenter(center);
+                if(center.y>triangle.p2.y) {
+                    yflip = -1;
+                }
+                if(center.x>triangle.p2.x){
+                    xflip= -1;
+                }
+            }
+
+            console.log("None");
+            this.triangles.push([triangle,[xflip,yflip]]);
             return
         }
         else{
@@ -155,11 +179,11 @@ AFRAME.registerComponent('multiverse', {
         c = vertices[2].distanceTo(vertices[0]);
         s=(a+b+c)/2;
         let ar = (a*b*c)/(8*(s-a)*(s-b)*(s-c));
-
+        
         var texture = new THREE.Texture(this.canvases[Math.floor(Math.random() * 103)]);
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(ar,ar);  
+        texture.repeat.set(this.repeatRatio,this.repeatRatio);  
        
         
 
@@ -178,40 +202,61 @@ AFRAME.registerComponent('multiverse', {
        
         const geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
         const material1 = new THREE.MeshBasicMaterial({map: texture, side: THREE.DoubleSide});
-
-        if(type==1){
+        material= new THREE.MeshBasicMaterial({
+            map : texture,
+            color:"gray"
+        });
+        if(type[0]==-1&&type[1]==-1){
+            texture.repeat.set(-this.repeatRatio,-this.repeatRatio);  
+            material= new THREE.MeshBasicMaterial({
+                map : texture,
+                color:"green"
+            });
+        }
+        else if(type[0]==-1){
+            texture.repeat.set(-this.repeatRatio,this.repeatRatio);  
             material= new THREE.MeshBasicMaterial({
                 map : texture,
                 color:"red"
             });
         }
-        if(type==2){
-            material= new THREE.MeshBasicMaterial({
-                map : texture,
-                color:"blue"
-            });
-        }
-        if(type==3){
+        else if(type[1]==-1){
+            texture.repeat.set(this.repeatRatio,-this.repeatRatio);  
             material= new THREE.MeshBasicMaterial({
                 map : texture,
                 color:"yellow"
             });
         }
-        if(vertices[0].y==vertices[1].y || vertices[1].y == vertices[2].y){
-            material= new THREE.MeshBasicMaterial({
-                map : texture,
-                color:"green"
-            });
-            //texture.offset.x = ar-1
-        }
 
-        else if(vertices[0].x==vertices[1].x || vertices[1].x == vertices[2].x){
-            material= new THREE.MeshBasicMaterial({
-                map : texture,
-                color:"gray"
-            });
-            //texture.offset.y = ar+1
-        }
+        
+        // if(type==2){
+        //     material= new THREE.MeshBasicMaterial({
+        //         map : texture,
+        //         color:"blue"
+        //     });
+        // }
+        // if(type==3){
+        //     material= new THREE.MeshBasicMaterial({
+        //         map : texture,
+        //         color:"green"
+        //     });
+        // }
+
+        // if(vertices[2].y==vertices[1].y ){
+        //     material= new THREE.MeshBasicMaterial({
+        //         map : texture,
+        //         color:"green"
+        //     });
+        //     //texture.offset.x = ar-1
+        // }
+
+        // else if(vertices[0].x==vertices[1].x || vertices[1].x == vertices[2].x){
+        //     material= new THREE.MeshBasicMaterial({
+        //         map : texture,
+        //         color:"yellow"
+        //     });
+        //     //texture.offset.y = ar+1
+        // }
         texture.needsUpdate = true;
         const material2 = new THREE.MeshBasicMaterial({map: texture,side: THREE.DoubleSide});
 
@@ -228,21 +273,21 @@ AFRAME.registerComponent('multiverse', {
 
 AFRAME.registerComponent('prism', {
     init: function(){
-        const randz = Math.random() *4;
-        // const randx = Math.random() * 25;
-        // this.alpha = Math.random() * 2*Math.PI;
-        // this.beta = Math.random() * 2*Math.PI;
-        // this.theta = Math.random() * 2*Math.PI;
-        // this.rotationSpeed = Math.random();
-         this.el.object3D.position.z = randz- 0.5 ;
-        // this.el.object3D.position.x = randx -4;
-        // this.el.object3D.rotation.x = this.alpha;
-        // this.el.object3D.rotation.y = this.beta;
-        // this.el.object3D.rotation.z = this.theta;
+        const randz = Math.random() *20;
+        const randx = Math.random() * 25;
+        this.alpha = Math.random() * 2*Math.PI;
+        this.beta = Math.random() * 2*Math.PI;
+        this.theta = Math.random() * 2*Math.PI;
+        this.rotationSpeed = Math.random();
+        this.el.object3D.position.z = randz- 0.5 ;
+        this.el.object3D.position.x = randx -4;
+        this.el.object3D.rotation.x = this.alpha;
+        this.el.object3D.rotation.y = this.beta;
+        this.el.object3D.rotation.z = this.theta;
     },
     tick(d, dt){
-    //    this.el.object3D.rotation.x += dt/1000 * this.rotationSpeed;
-    //     this.el.object3D.rotation.y += dt/1000 * this.rotationSpeed;
-    //     this.el.object3D.rotation.z += dt/1000 * this.rotationSpeed;
+       this.el.object3D.rotation.x += dt/1000 * this.rotationSpeed;
+        this.el.object3D.rotation.y += dt/1000 * this.rotationSpeed;
+        this.el.object3D.rotation.z += dt/1000 * this.rotationSpeed;
     }
 })

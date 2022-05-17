@@ -3,7 +3,7 @@ AFRAME.registerComponent('multiverse', {
         min: {type:'number', default:511}    
     },
     init: function(){
-        this.repeatRatio = 4;
+        this.repeatRatio = 4  ;
         this.canvases=[];
         const config = {
             src: './assets/open-peeps-sheet1.png',
@@ -19,7 +19,7 @@ AFRAME.registerComponent('multiverse', {
         let baseTris=[];
         this.triangles=[];
         const rotations=[[0,0,0],[0,180, 0], [0, 90, 0], [0, -90, 0]]
-        const positions=[[0,0,-2],[0,0, 2], [-2, 0, 0], [2, 0, 0]]
+        const positions=[[0,0.25,-2],[0,0.25, 2], [-2, 0.25, 0], [2, 0.25, 0]]
 
         const source = document.createElement('img');
         source.src=config.src;
@@ -83,9 +83,7 @@ AFRAME.registerComponent('multiverse', {
         let xflip = 1;
         let yflip =1;
         if (this.area(triangle)<16/this.data.min){
-            console.log("Out");
             if(triangle.p1.distanceToSquared(triangle.p2) > triangle.p2.distanceToSquared(triangle.p3) && triangle.p1.distanceToSquared(triangle.p2) > triangle.p3.distanceToSquared(triangle.p1)){
-                console.log("Top");
                 const line = new THREE.Line3(triangle.p1, triangle.p2);
                 const center = new THREE.Vector3();
                 line.getCenter(center);
@@ -97,7 +95,6 @@ AFRAME.registerComponent('multiverse', {
                 }
             }
             else if(triangle.p2.distanceToSquared(triangle.p3) > triangle.p2.distanceToSquared(triangle.p1) && triangle.p2.distanceToSquared(triangle.p3) > triangle.p3.distanceToSquared(triangle.p1)){
-                console.log("Mid");
                 const line = new THREE.Line3(triangle.p2, triangle.p3);
                 const center = new THREE.Vector3();
                 line.getCenter(center);
@@ -109,7 +106,6 @@ AFRAME.registerComponent('multiverse', {
                 }
             }
             else{
-                console.log("Bottom");
                 const line = new THREE.Line3(triangle.p1, triangle.p3);
                 const center = new THREE.Vector3();
                 line.getCenter(center);
@@ -120,8 +116,6 @@ AFRAME.registerComponent('multiverse', {
                     xflip= -1;
                 }
             }
-
-            console.log("None");
             this.triangles.push([triangle,[xflip,yflip]]);
             return
         }
@@ -220,7 +214,7 @@ AFRAME.registerComponent('multiverse', {
                 color:"red"
             });
         }
-        else if(type[1]==-1){
+        if(type[1]==-1){
             texture.repeat.set(this.repeatRatio,-this.repeatRatio);  
             material= new THREE.MeshBasicMaterial({
                 map : texture,
@@ -273,8 +267,8 @@ AFRAME.registerComponent('multiverse', {
 
 AFRAME.registerComponent('prism', {
     init: function(){
-        const randz = Math.random() *20;
-        const randx = Math.random() * 25;
+        const randz = Math.random() *80;
+        const randx = Math.random() * 80;
         this.alpha = Math.random() * 2*Math.PI;
         this.beta = Math.random() * 2*Math.PI;
         this.theta = Math.random() * 2*Math.PI;
@@ -289,5 +283,25 @@ AFRAME.registerComponent('prism', {
        this.el.object3D.rotation.x += dt/1000 * this.rotationSpeed;
         this.el.object3D.rotation.y += dt/1000 * this.rotationSpeed;
         this.el.object3D.rotation.z += dt/1000 * this.rotationSpeed;
+    }
+})
+
+AFRAME.registerComponent('watcher', {
+    schema: {
+        follow: {type:'string', default:'camera'}    
+    },
+    init: function(){
+        this.toFollow = document.getElementById("camera");
+        this.parent = document.getElementById("watcherparent");
+        const texture = new THREE.TextureLoader().load( 'assets/watcher.png' );
+        const material = new THREE.SpriteMaterial( { map: texture, transparent: true, blending: THREE.AdditiveBlending } );
+
+        const sprite = new THREE.Sprite( material );
+        sprite.scale.set(100, 100, 100);
+        this.el.object3D.add(sprite);
+    },
+    tick(){
+        this.parent.object3D.rotation.y= this.toFollow.object3D.rotation.y;
+
     }
 })

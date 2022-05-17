@@ -2,11 +2,32 @@
   <head>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://unpkg.com/aframe-environment-component@1.2.0/dist/aframe-environment-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-geometry-merger-component/dist/aframe-geometry-merger-component.min.js"></script>
     <script src="index.js"></script>
+    <title>Fractured Realities</title>
   </head>
   <body id="body">
-    <a-scene stats multiverse>   
-        <a-entity environment="preset: starry;skyType:atmosphere; "></a-entity>    
+    <a-scene multiverse>
+      <a-assets>
+        <img id="my-image" src="./assets/watcher.png">
+      </a-assets>
+    
+      <!-- Using the asset management system. -->
+      <a-entity id = "camera" camera="active: true" look-controls wasd-controls position="0 1.6 0">
+        
+      </a-entity>
+
+      <a-entity id = "watcherparent">
+        <a-entity watcher="follow:camera" position="10 10 -150"></a-entity>
+      </a-entity>
+
+      
+
+      
+        <a-entity environment="lightPosition: 0 -100 1; ground:flat; groundColor: #445;preset: starry;skyType:gradient; horizonColor:#120b15; skyColor:#090912"></a-entity>  
+        <a-entity id = "parent" geometry-merger="preserveOriginal: false" material="color: #AAA">
+        <!-- <a-plane rotation="-90 0 0" material="color:black" scale="1000, 1000"></a-plane> -->
+        </a-entity> 
     </a-scene>
   </body>
   <!-- <script src="index_.js"></script> -->
